@@ -35,22 +35,44 @@ class CreateSong(graphene.Mutation):
         song.save()
         return CreateSong(song=song)
 
-class UpdateSong(graphene.Mutation):
+class SwapSongs(graphene.Mutation):
     class Arguments:
-        new_pos = graphene.Int(required=True)
-        id = graphene.ID()
+        # new_pos = graphene.Int(required=True)
+        id1 = graphene.ID()
+        id2 = graphene.ID() 
     
+    song1 = graphene.Field(SongType)
+    song2 = graphene.Field(SongType)
+
+    @classmethod
+    def mutate(cls, root, info, id1, id2):
+        song1 = Song.objects.get(pk=id1)
+        song2 = Song.objects.get(pk=id2)
+        temp = song1.queue_position
+        song1.queue_position = song2.queue_position
+        song2.queue_position = temp 
+        song1.save()
+        song2.save() 
+        return SwapSongs(song1=song1,song2=song2)
+
+class DeleteSong(graphene.Mutation):
+    ok = graphene.Boolean()
+
+    class Arguments:
+        id = graphene.ID()
+
     song = graphene.Field(SongType)
 
     @classmethod
-    def mutate(cls, root, info, new_pos, id):
+    def mutate(cls, root, info, id):
         song = Song.objects.get(pk=id)
-        song.queue_position = new_pos
-        song.save()
-        return UpdateSong(song=song)
+        song.delete()
+        return cls(ok=True)
+
 
 class Mutation(graphene.ObjectType):
     create_song = CreateSong.Field()
-    update_song = UpdateSong.Field()
+    swap_songs = SwapSongs.Field()
+    delete_song = DeleteSong.Field()
  
 schema = graphene.Schema(query=Query, mutation=Mutation)
